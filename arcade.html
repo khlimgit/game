@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Neon Arcade</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#07031a;--ink:#eef2ff;--dim:rgba(200,210,255,.72)}
+  *{box-sizing:border-box}
+  html,body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font-family:Orbitron,"Segoe UI","Malgun Gothic",sans-serif}
+  canvas#bg{position:fixed;inset:0;width:100%;height:100%;z-index:0}
+  main{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:56px 16px 48px}
+  h1{margin:0;text-align:center;font-weight:900;font-size:clamp(40px,8vw,84px);letter-spacing:.08em;line-height:1;
+     background:linear-gradient(90deg,#5fe0ff,#b06cff,#ff4fb0,#ffd25a,#5fe0ff);background-size:300% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;
+     filter:drop-shadow(0 0 18px rgba(176,108,255,.55));animation:shift 6s linear infinite}
+  .sub{text-align:center;color:var(--dim);margin:14px 0 44px;font-size:14px;letter-spacing:.2em}
+  @keyframes shift{to{background-position:300% 0}}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:22px}
+  a.card{position:relative;display:block;text-decoration:none;color:inherit;border-radius:18px;padding:2px;overflow:hidden;
+     background:linear-gradient(140deg,var(--c1),var(--c2));transform:translateY(30px) scale(.96);opacity:0;
+     animation:in .7s cubic-bezier(.2,1.4,.4,1) forwards;animation-delay:var(--d);transition:transform .25s,box-shadow .25s}
+  @keyframes in{to{transform:none;opacity:1}}
+  a.card:hover,a.card:focus-visible{transform:translateY(-8px) scale(1.03);box-shadow:0 18px 50px -10px var(--c1),0 0 0 1px rgba(255,255,255,.3)}
+  .inner{border-radius:16px;background:rgba(10,6,30,.92);height:100%;overflow:hidden}
+  .inner canvas{display:block;width:100%;height:170px}
+  .info{padding:16px 18px 20px}
+  .tag{font-size:10px;letter-spacing:.25em;color:var(--c1);font-weight:700}
+  .name{font-size:22px;font-weight:900;margin:6px 0 8px;letter-spacing:.04em}
+  .desc{font-family:"Malgun Gothic","Segoe UI",sans-serif;font-size:13px;line-height:1.55;color:var(--dim);margin:0}
+  .play{margin-top:14px;font-size:12px;font-weight:700;letter-spacing:.2em;color:#fff;opacity:.85}
+  a.card:hover .play{opacity:1}
+  footer{text-align:center;color:rgba(200,210,255,.45);font-size:11px;margin-top:40px;letter-spacing:.15em}
+</style>
+</head>
+<body>
+<canvas id="bg"></canvas>
+<main>
+  <h1>NEON ARCADE</h1>
+  <p class="sub">PICK A GAME</p>
+  <div class="grid">
+    <a class="card" href="index.html" style="--c1:#5fe0ff;--c2:#5a7cff;--d:.05s">
+      <div class="inner"><canvas data-demo="shooter"></canvas>
+        <div class="info"><div class="tag">SHOOTER</div><div class="name">NOVA STRIKE</div>
+        <p class="desc">비행기를 몰고 적 편대와 거대 모선을 격추하는 종스크롤 슈팅.</p><div class="play">▶ PLAY</div></div></div>
+    </a>
+    <a class="card" href="breakout.html" style="--c1:#ff4fb0;--c2:#ffb14a;--d:.15s">
+      <div class="inner"><canvas data-demo="breakout"></canvas>
+        <div class="info"><div class="tag">ARCADE</div><div class="name">PRISM BREAK</div>
+        <p class="desc">공을 튕겨 네온 벽돌을 부수는 벽돌깨기. 멀티볼, 레이저, 폭발 벽돌.</p><div class="play">▶ PLAY</div></div></div>
+    </a>
+    <a class="card" href="runner.html" style="--c1:#7dffb0;--c2:#5fe0ff;--d:.25s">
+      <div class="inner"><canvas data-demo="runner"></canvas>
+        <div class="info"><div class="tag">ACTION</div><div class="name">NEON DASH</div>
+        <p class="desc">점프와 슬라이드로 장애물을 피하며 네온 도시를 끝없이 달리는 러너.</p><div class="play">▶ PLAY</div></div></div>
+    </a>
+    <a class="card" href="match3.html" style="--c1:#b06cff;--c2:#ff4fb0;--d:.35s">
+      <div class="inner"><canvas data-demo="match3"></canvas>
+        <div class="info"><div class="tag">PUZZLE</div><div class="name">GEM CASCADE</div>
+        <p class="desc">보석을 바꿔 3개 이상 맞추는 퍼즐. 연쇄와 특수 보석으로 고득점을.</p><div class="play">▶ PLAY</div></div></div>
+    </a>
+  </div>
+  <footer>마우스 · 키보드 · 터치 지원</footer>
+</main>
+<script>
+'use strict';
+const TAU = Math.PI * 2, rand = (a, b) => a + Math.random() * (b - a);
+/* 배경 별 */
+const bg = document.getElementById('bg'), bx = bg.getContext('2d');
+let BW, BH, stars = [];
+function sizeBg() {
+  const d = Math.min(2, devicePixelRatio || 1); BW = innerWidth; BH = innerHeight;
+  bg.width = BW * d; bg.height = BH * d; bx.setTransform(d, 0, 0, d, 0, 0);
+  stars = Array.from({ length: 160 }, () => ({ x: Math.random() * BW, y: Math.random() * BH, z: Math.random() }));
+}
+addEventListener('resize', sizeBg); sizeBg();
+
+/* 카드별 미니 데모 */
+const demos = [...document.querySelectorAll('canvas[data-demo]')].map(c => ({ c, g: c.getContext('2d'), type: c.dataset.demo, st: {} }));
+function fit(d) {
+  const r = d.c.getBoundingClientRect(), k = Math.min(2, devicePixelRatio || 1);
+  if (d.c.width !== Math.round(r.width * k)) { d.c.width = Math.round(r.width * k); d.c.height = Math.round(r.height * k); }
+  d.g.setTransform(k, 0, 0, k, 0, 0); return [r.width, r.height];
+}
+function glow(g, x, y, r, col) { const gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, '#fff'); gr.addColorStop(0.2, col); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.beginPath(); g.arc(x, y, r, 0, TAU); g.fill(); }
+const draw = {
+  shooter(g, w, h, t) {
+    g.fillStyle = '#0a0828'; g.fillRect(0, 0, w, h);
+    for (let i = 0; i < 40; i++) { const y = ((i * 37 + t * (40 + i % 5 * 40)) % h), x = (i * 71) % w; g.fillStyle = 'rgba(200,220,255,.6)'; g.fillRect(x, y, 1.5, 2 + i % 3 * 2); }
+    const px = w / 2 + Math.sin(t * 1.3) * w * 0.25, py = h * 0.75;
+    g.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < 6; i++) { const by = (py - 20 - ((t * 400 + i * 30) % (h))); g.fillStyle = 'rgba(80,220,255,.9)'; g.fillRect(px - 5, by, 2, 10); g.fillRect(px + 3, by, 2, 10); }
+    glow(g, px, py + 16, 12, 'rgba(80,200,255,.8)');
+    for (let i = 0; i < 4; i++) { const ex = (i + 0.5) * w / 4 + Math.sin(t * 2 + i) * 20, ey = 30 + Math.sin(t * 1.5 + i) * 10; glow(g, ex, ey, 14, 'rgba(255,60,160,.6)'); }
+    g.globalCompositeOperation = 'source-over';
+    g.fillStyle = '#cfe0ff'; g.beginPath(); g.moveTo(px, py - 16); g.lineTo(px + 16, py + 10); g.lineTo(px, py + 5); g.lineTo(px - 16, py + 10); g.closePath(); g.fill();
+    for (let i = 0; i < 4; i++) { const ex = (i + 0.5) * w / 4 + Math.sin(t * 2 + i) * 20, ey = 30 + Math.sin(t * 1.5 + i) * 10; g.fillStyle = '#ff4fa8'; g.beginPath(); g.moveTo(ex, ey + 10); g.lineTo(ex + 10, ey - 6); g.lineTo(ex - 10, ey - 6); g.fill(); }
+  },
+  breakout(g, w, h, t) {
+    g.fillStyle = '#120836'; g.fillRect(0, 0, w, h);
+    const cols = ['#ff4678', '#ff8c3c', '#ffdc50', '#78ff8c', '#50dcff'], bw = w / 8;
+    for (let r = 0; r < 4; r++) for (let c = 0; c < 8; c++) { if ((r * 8 + c + Math.floor(t * 2)) % 11 === 0) continue; g.fillStyle = cols[r]; g.fillRect(c * bw + 2, 16 + r * 14, bw - 4, 10); }
+    const bxp = w / 2 + Math.sin(t * 2.1) * w * 0.4, byp = h * 0.45 + Math.cos(t * 3.3) * h * 0.25;
+    g.globalCompositeOperation = 'lighter'; glow(g, bxp, byp, 16, 'rgba(255,100,200,.8)'); g.globalCompositeOperation = 'source-over';
+    g.fillStyle = '#fff'; g.beginPath(); g.arc(bxp, byp, 5, 0, TAU); g.fill();
+    g.fillStyle = '#5fc0ff'; g.fillRect(bxp - 35, h - 20, 70, 9);
+  },
+  runner(g, w, h, t) {
+    const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#0a0428'); gr.addColorStop(1, '#4a1050'); g.fillStyle = gr; g.fillRect(0, 0, w, h);
+    const gy = h * 0.78;
+    for (let l = 0; l < 2; l++) { g.fillStyle = l ? '#0b0620' : '#1d1145'; for (let i = 0; i < 14; i++) { const bw2 = 30 + (i * 13) % 30, x = ((i * 47 - t * (30 + l * 60)) % (w + 60) + w + 60) % (w + 60) - 40, bh = 30 + (i * 29 % 50) + l * -10; g.fillRect(x, gy - bh, bw2, bh); } }
+    g.strokeStyle = '#5fe0ff'; g.lineWidth = 2; g.beginPath(); g.moveTo(0, gy); g.lineTo(w, gy); g.stroke();
+    const sx = ((w + 40) - (t * 220) % (w + 80));
+    g.fillStyle = '#ff9a3a'; g.beginPath(); g.moveTo(sx, gy); g.lineTo(sx + 10, gy - 18); g.lineTo(sx + 20, gy); g.fill();
+    const ph = t * 14, x = w * 0.25, jump = Math.max(0, Math.sin(t * 2.6)) * 40, y = gy - jump;
+    g.strokeStyle = '#e8fbff'; g.lineWidth = 3; g.lineCap = 'round'; g.beginPath();
+    g.moveTo(x, y - 18); g.lineTo(x + 4, y - 34);
+    for (const o of [0, Math.PI]) { const a = Math.sin(ph + o) * 0.9; g.moveTo(x, y - 18); g.lineTo(x + Math.sin(a) * 10, y - 18 + Math.cos(a) * 10); g.lineTo(x + Math.sin(a - 0.6) * 10 + Math.sin(a) * 10, y - 8 + Math.cos(a - 0.6) * 10); g.moveTo(x + 4, y - 32); g.lineTo(x + 4 - Math.sin(a) * 9, y - 24); }
+    g.stroke(); g.fillStyle = '#fff'; g.beginPath(); g.arc(x + 5, y - 40, 5, 0, TAU); g.fill();
+  },
+  match3(g, w, h, t) {
+    g.fillStyle = '#140834'; g.fillRect(0, 0, w, h);
+    const hues = [350, 28, 52, 140, 200, 280], n = 6, cs = Math.min(w / (n + 1), h / 5), ox = (w - cs * n) / 2, oy = (h - cs * 4) / 2;
+    for (let r = 0; r < 4; r++) for (let c = 0; c < n; c++) {
+      const k = (r * 7 + c * 3) % 6, pop = (Math.floor(t * 1.5) % 4 === r) ? Math.max(0, Math.sin((t * 1.5 % 1) * Math.PI)) : 0;
+      const x = ox + c * cs + cs / 2, y = oy + r * cs + cs / 2, s = cs * 0.36 * (1 + pop * 0.3);
+      g.globalCompositeOperation = 'lighter'; glow(g, x, y, s * 1.6 * (0.4 + pop), `hsla(${hues[k]},100%,60%,.6)`); g.globalCompositeOperation = 'source-over';
+      g.fillStyle = `hsl(${hues[k]},95%,58%)`; g.save(); g.translate(x, y); g.rotate(pop * 0.6); g.beginPath();
+      for (let i = 0; i < 6; i++) { const a = i / 6 * TAU; g[i ? 'lineTo' : 'moveTo'](Math.cos(a) * s, Math.sin(a) * s); } g.closePath(); g.fill();
+      g.fillStyle = 'rgba(255,255,255,.5)'; g.beginPath(); g.ellipse(-s * 0.25, -s * 0.35, s * 0.3, s * 0.12, -0.5, 0, TAU); g.fill(); g.restore();
+    }
+  },
+};
+let last = performance.now(), T = 0;
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now; T += dt;
+  bx.fillStyle = '#07031a'; bx.fillRect(0, 0, BW, BH);
+  const gr = bx.createRadialGradient(BW / 2, BH * 0.2, 0, BW / 2, BH * 0.2, Math.max(BW, BH) * 0.8);
+  gr.addColorStop(0, 'rgba(120,60,220,.28)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); bx.fillStyle = gr; bx.fillRect(0, 0, BW, BH);
+  for (const s of stars) { s.y += (10 + s.z * 60) * dt; if (s.y > BH) { s.y = 0; s.x = Math.random() * BW; } bx.fillStyle = `rgba(200,210,255,${0.2 + s.z * 0.7})`; bx.fillRect(s.x, s.y, 1 + s.z, 1 + s.z); }
+  for (const d of demos) { const [w, h] = fit(d); if (w > 0) draw[d.type](d.g, w, h, T); }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(t => { last = t; frame(t); });
+</script>
+</body>
+</html>
